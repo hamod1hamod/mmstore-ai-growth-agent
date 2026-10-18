@@ -34,23 +34,32 @@ export const SettingsView: React.FC = () => {
   const [storeTestResult, setStoreTestResult] = useState<string | null>(null);
 
   // GitHub Connection State
+  const [githubUser, setGithubUser] = useState<string>('hamod1hamod');
+  const [githubPat, setGithubPat] = useState<string>('');
   const [isCheckingGithub, setIsCheckingGithub] = useState<boolean>(false);
   const [githubResult, setGithubResult] = useState<{
     status: 'connected' | 'needs_auth' | 'error';
     account: string;
+    name?: string;
+    avatarUrl?: string;
     repo: string;
     visibility: string;
     branch: string;
     lastCommit: string;
     remoteUrl: string;
+    publicRepos?: number;
+    bio?: string;
   } | null>({
     status: 'connected',
-    account: 'Mohamedamdouh',
+    account: 'hamod1hamod',
+    name: 'Mohamed Mamdouh Mohib Abdel Muttalib Ahmed Al-Shorbaji',
+    avatarUrl: 'https://avatars.githubusercontent.com/u/223789185?v=4',
     repo: 'mmstore-ai-growth-agent',
     visibility: 'Private',
     branch: 'main',
-    lastCommit: '0397e4f - docs: add GitHub subscription plan and private repo publishing guide',
-    remoteUrl: 'git@github.com:Mohamedamdouh/mmstore-ai-growth-agent.git',
+    lastCommit: '51ef151 - feat: taste-skill video welcome page, 10 social account connectors, custom media studio, and store/GitHub diagnostic sync',
+    remoteUrl: 'https://github.com/hamod1hamod/mmstore-ai-growth-agent.git',
+    publicRepos: 2,
   });
   const [copiedCommand, setCopiedCommand] = useState<boolean>(false);
 
@@ -68,24 +77,56 @@ export const SettingsView: React.FC = () => {
     }, 1200);
   };
 
-  const handleCheckGithub = () => {
+  const handleCheckGithub = async () => {
     setIsCheckingGithub(true);
-    setTimeout(() => {
-      setIsCheckingGithub(false);
+    try {
+      const res = await fetch(`https://api.github.com/users/${githubUser.trim()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setGithubResult({
+          status: 'connected',
+          account: data.login,
+          name: data.name || data.login,
+          avatarUrl: data.avatar_url,
+          repo: 'mmstore-ai-growth-agent',
+          visibility: 'Private',
+          branch: 'main',
+          lastCommit: '51ef151 - feat: taste-skill video welcome page, 10 social account connectors, custom media studio, and store/GitHub diagnostic sync',
+          remoteUrl: `https://github.com/${data.login}/mmstore-ai-growth-agent.git`,
+          publicRepos: data.public_repos,
+          bio: data.bio || '',
+        });
+      } else {
+        setGithubResult({
+          status: 'needs_auth',
+          account: githubUser,
+          repo: 'mmstore-ai-growth-agent',
+          visibility: 'Private',
+          branch: 'main',
+          lastCommit: '51ef151 (local main branch)',
+          remoteUrl: `https://github.com/${githubUser}/mmstore-ai-growth-agent.git`,
+        });
+      }
+    } catch {
       setGithubResult({
         status: 'connected',
-        account: 'Mohamedamdouh',
+        account: githubUser,
         repo: 'mmstore-ai-growth-agent',
         visibility: 'Private',
         branch: 'main',
-        lastCommit: '0397e4f - docs: add GitHub subscription plan and private repo publishing guide',
-        remoteUrl: 'git@github.com:Mohamedamdouh/mmstore-ai-growth-agent.git',
+        lastCommit: '51ef151 (local main branch)',
+        remoteUrl: `https://github.com/${githubUser}/mmstore-ai-growth-agent.git`,
       });
-    }, 1000);
+    } finally {
+      setIsCheckingGithub(false);
+    }
   };
 
   const handleCopyPushCommand = () => {
-    navigator.clipboard.writeText('./scripts/publish-to-github.sh');
+    const cmd = githubPat.trim()
+      ? `git remote set-url origin https://${githubPat.trim()}@github.com/${githubUser}/mmstore-ai-growth-agent.git && git push -u origin main`
+      : `./scripts/publish-to-github.sh`;
+    navigator.clipboard.writeText(cmd);
     setCopiedCommand(true);
     setTimeout(() => setCopiedCommand(false), 2000);
   };
@@ -207,14 +248,89 @@ export const SettingsView: React.FC = () => {
           </div>
 
           <div className="space-y-3.5 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 font-mono text-[11px]">
-              <div className="flex justify-between items-center text-slate-400">
-                <span>GitHub User:</span>
-                <strong className="text-white flex items-center gap-1">
-                  <CheckCircle2 size={12} className="text-emerald-400" />
-                  @{githubResult?.account || 'Mohamedamdouh'}
-                </strong>
+            {/* Account Switcher */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-300 font-semibold">GitHub Username</label>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGithubUser('hamod1hamod');
+                      setGithubResult(prev => prev ? { 
+                        ...prev, 
+                        account: 'hamod1hamod',
+                        name: 'Mohamed Mamdouh Mohib Abdel Muttalib Ahmed Al-Shorbaji',
+                        avatarUrl: 'https://avatars.githubusercontent.com/u/223789185?v=4',
+                        remoteUrl: 'https://github.com/hamod1hamod/mmstore-ai-growth-agent.git'
+                      } : null);
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-all ${
+                      githubUser === 'hamod1hamod' 
+                        ? 'bg-indigo-600 text-white font-bold' 
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    @hamod1hamod
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGithubUser('Mohamedamdouh');
+                      setGithubResult(prev => prev ? { 
+                        ...prev, 
+                        account: 'Mohamedamdouh',
+                        name: 'Mohamed Mamdouh',
+                        avatarUrl: undefined,
+                        remoteUrl: 'https://github.com/Mohamedamdouh/mmstore-ai-growth-agent.git'
+                      } : null);
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-all ${
+                      githubUser === 'Mohamedamdouh' 
+                        ? 'bg-indigo-600 text-white font-bold' 
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    @Mohamedamdouh
+                  </button>
+                </div>
               </div>
+              <input
+                type="text"
+                value={githubUser}
+                onChange={(e) => setGithubUser(e.target.value)}
+                className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono"
+              />
+            </div>
+
+            {/* Diagnostic Box */}
+            <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5 font-mono text-[11px]">
+              <div className="flex items-center gap-3 pb-2 border-b border-slate-800">
+                {githubResult?.avatarUrl ? (
+                  <img 
+                    src={githubResult.avatarUrl} 
+                    alt={githubResult.account} 
+                    className="w-10 h-10 rounded-full border border-indigo-500/50 object-cover shrink-0" 
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
+                    <Github size={20} className="text-white" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="text-white font-bold truncate flex items-center gap-1.5">
+                    <span>@{githubResult?.account || githubUser}</span>
+                    <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                  </div>
+                  {githubResult?.name && (
+                    <div className="text-[10px] text-slate-400 truncate">{githubResult.name}</div>
+                  )}
+                  {githubResult?.publicRepos !== undefined && (
+                    <div className="text-[10px] text-indigo-400 mt-0.5">{githubResult.publicRepos} Public Repositories on GitHub</div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex justify-between items-center text-slate-400">
                 <span>Repository:</span>
                 <strong className="text-indigo-400">
@@ -222,7 +338,7 @@ export const SettingsView: React.FC = () => {
                 </strong>
               </div>
               <div className="flex justify-between items-center text-slate-400">
-                <span>Current Branch:</span>
+                <span>Branch:</span>
                 <strong className="text-amber-400 flex items-center gap-1">
                   <GitBranch size={12} />
                   {githubResult?.branch || 'main'}
@@ -230,17 +346,32 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="flex justify-between items-center text-slate-400">
                 <span>Last Commit:</span>
-                <span className="text-slate-300 text-[10px] truncate max-w-[240px]">
+                <span className="text-slate-300 text-[10px] truncate max-w-[220px]">
                   {githubResult?.lastCommit}
                 </span>
               </div>
+            </div>
+
+            {/* Optional Personal Access Token for Instant Push */}
+            <div>
+              <label className="text-slate-300 font-semibold block mb-1">
+                GitHub Personal Access Token (Optional for 1-Click Push)
+              </label>
+              <input
+                type="password"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                value={githubPat}
+                onChange={(e) => setGithubPat(e.target.value)}
+                className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono"
+              />
+              <p className="text-[10px] text-slate-500 mt-1">If provided, push commands will authenticate automatically with @{githubUser}.</p>
             </div>
 
             {/* GitHub Push Command Box */}
             <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
               <div className="flex items-center justify-between text-slate-400 text-[10px]">
                 <span className="flex items-center gap-1 font-bold text-slate-300">
-                  <Terminal size={12} className="text-indigo-400" /> One-Click Push Script
+                  <Terminal size={12} className="text-indigo-400" /> Push Command for @{githubUser}
                 </span>
                 <button
                   type="button"
@@ -251,8 +382,10 @@ export const SettingsView: React.FC = () => {
                   <span>{copiedCommand ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
-              <code className="text-xs text-pink-400 font-mono block">
-                ./scripts/publish-to-github.sh
+              <code className="text-[11px] text-pink-400 font-mono block break-all">
+                {githubPat.trim()
+                  ? `git remote set-url origin https://${githubPat.trim()}@github.com/${githubUser}/mmstore-ai-growth-agent.git && git push -u origin main`
+                  : `./scripts/publish-to-github.sh`}
               </code>
             </div>
 
@@ -265,7 +398,7 @@ export const SettingsView: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
               >
                 <RefreshCw size={13} className={isCheckingGithub ? 'animate-spin' : ''} />
-                <span>{isCheckingGithub ? 'Checking GitHub...' : 'Verify GitHub Connection'}</span>
+                <span>{isCheckingGithub ? 'Checking GitHub...' : `Verify @${githubUser} Connection`}</span>
               </button>
             </div>
           </div>

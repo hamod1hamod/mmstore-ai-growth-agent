@@ -43,7 +43,7 @@ export const App: React.FC = () => {
     tier: 'growth',
     status: 'active',
     currentPeriodEnd: Date.now() + 30 * 86400000,
-    githubUser: 'Mohamedamdouh',
+    githubUser: 'hamod1hamod',
     usageThisMonth: {
       postsPublished: 18,
       videoSecondsRendered: 270,
