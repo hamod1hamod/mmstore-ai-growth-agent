@@ -1,0 +1,161 @@
+import { db } from '../config/firebase';
+import { AIMarketingAgent } from '../agent/marketingAgent';
+import { Product, Post, AutopilotConfig, PlatformId } from '../types';
+
+export class AutopilotService {
+  /**
+   * Main daily automated routine.
+   * Can be executed by Cloud Scheduler (e.g. 06:00 AM Cairo time) or triggered manually.
+   */
+  static async runDailyAutopilot(orgId: string): Promise<{
+    scheduledPostsCount: number;
+    posts: Post[];
+    notes: string;
+  }> {
+    console.log(`[AUTOPILOT] Starting daily marketing automation for org: ${orgId}`);
+
+    // 1. Fetch Autopilot configuration
+    const configSnap = await db.collection('organizations').doc(orgId).collection('brandSettings').doc('autopilot').get();
+    const config: AutopilotConfig = configSnap.exists
+      ? (configSnap.data() as AutopilotConfig)
+      : {
+          orgId,
+          enabled: true,
+          dailyPostCount: 3,
+          targetPlatforms: ['instagram', 'tiktok', 'facebook', 'youtube', 'telegram', 'x'],
+          postingScheduleUtc: ['09:00', '15:00', '19:00'], // 11am, 5pm, 9pm Cairo time
+          requireApproval: false, // Autonomous mode: posts automatically without human interaction
+          maxDailyAdBudget: 500,
+          preferredDialect: 'egyptian_arabic',
+          tone: 'streetwear_hype',
+          includeUrgency: true,
+          safetyInventoryThreshold: 3,
+        };
+
+    if (!config.enabled) {
+      return { scheduledPostsCount: 0, posts: [], notes: 'Autopilot is currently disabled in settings.' };
+    }
+
+    // 2. Query available products
+    const productsSnap = await db.collection('organizations').doc(orgId).collection('products')
+      .where('inStock', '==', true)
+      .get();
+
+    const products: Product[] = [];
+    productsSnap.forEach(doc => products.push({ id: doc.id, ...(doc.data() as any) }));
+
+    if (products.length === 0) {
+      console.warn(`[AUTOPILOT] No in-stock products found for org ${orgId}`);
+      return { scheduledPostsCount: 0, posts: [], notes: 'No in-stock products with sufficient inventory found.' };
+    }
+
+    // 3. Select products to promote today (e.g. up to dailyPostCount)
+    const eligibleProducts = products
+      .filter(p => p.totalStock >= (config.safetyInventoryThreshold || 3))
+      .sort((a, b) => (b.marginPercent * b.totalStock) - (a.marginPercent * a.totalStock));
+
+    const selectedProducts = eligibleProducts.slice(0, Math.min(config.dailyPostCount, eligibleProducts.length));
+
+    // 4. Generate content packages and schedule times
+    const scheduledPosts: Post[] = [];
+    const now = new Date();
+    const todayDateString = now.toISOString().split('T')[0];
+
+    for (let i = 0; i < selectedProducts.length; i++) {
+      const product = selectedProducts[i];
+      const timeSlotStr = config.postingScheduleUtc[i % config.postingScheduleUtc.length] || '12:00';
+      const [hours, minutes] = timeSlotStr.split(':').map(Number);
+      
+      const scheduledDate = new Date();
+      scheduledDate.setUTCHours(hours, minutes, 0, 0);
+      // If time has already passed today, schedule for next day or 15 mins from now
+      if (scheduledDate.getTime() < Date.now()) {
+        scheduledDate.setTime(Date.now() + (i + 1) * 30 * 60 * 1000); // 30 mins staggered
+      }
+
+      // Generate content
+      const content = await AIMarketingAgent.generateFashionContent(product, 'new_drop');
+      const videoPlan = AIMarketingAgent.generateReelStoryboard(product, 'new_drop');
+
+      const idempotencyKey = `auto_${orgId}_${product.id}_${todayDateString}_slot${i}`;
+
+      // Check if post already generated today
+      const existingQuery = await db.collection('organizations').doc(orgId).collection('posts')
+        .where('idempotencyKey', '==', idempotencyKey)
+        .limit(1)
+        .get();
+
+      if (!existingQuery.empty) {
+        console.log(`[AUTOPILOT] Post already planned for ${idempotencyKey}, skipping.`);
+        continue;
+      }
+
+      const postData: Post = {
+        id: db.collection('organizations').doc(orgId).collection('posts').doc().id,
+        orgId,
+        productId: product.id,
+        title: `${product.name} - Daily Auto Drop`,
+        captionArabic: content.captionArabic,
+        captionEnglish: content.captionEnglish,
+        hashtags: content.hashtags,
+        platforms: config.targetPlatforms,
+        format: i === 0 ? 'reel' : (i === 1 ? 'photo' : 'carousel'),
+        aspectRatio: i === 0 ? '9:16' : '1:1',
+        mediaUrls: product.images.length > 0 ? product.images : ['https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800'],
+        productUrl: product.productUrl,
+        utmParams: {
+          utm_source: 'autopilot_daily',
+          utm_medium: 'social',
+          utm_campaign: `daily_drop_${todayDateString}`,
+          utm_content: product.id,
+        },
+        status: config.requireApproval ? 'awaiting_approval' : 'scheduled',
+        scheduledTime: scheduledDate.getTime(),
+        idempotencyKey,
+        retryCount: 0,
+        autoGenerated: true,
+        requiresHumanApproval: config.requireApproval,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      // Save post to Firestore
+      await db.collection('organizations').doc(orgId).collection('posts').doc(postData.id).set(postData);
+
+      // Create scheduled job record
+      await db.collection('organizations').doc(orgId).collection('scheduledJobs').doc(`job_${postData.id}`).set({
+        id: `job_${postData.id}`,
+        orgId,
+        postId: postData.id,
+        status: postData.status === 'scheduled' ? 'pending' : 'paused',
+        executeAt: postData.scheduledTime,
+        retries: 0,
+        createdAt: Date.now(),
+      });
+
+      scheduledPosts.push(postData);
+    }
+
+    // 5. Create audit log
+    await db.collection('organizations').doc(orgId).collection('auditLogs').add({
+      orgId,
+      userId: 'system_autopilot',
+      action: 'DAILY_AUTOPILOT_RUN',
+      entityType: 'autopilot',
+      entityId: `run_${todayDateString}`,
+      details: {
+        scheduledPostsCount: scheduledPosts.length,
+        autonomous: !config.requireApproval,
+        platforms: config.targetPlatforms,
+      },
+      timestamp: Date.now(),
+    });
+
+    console.log(`[AUTOPILOT] Completed. Scheduled ${scheduledPosts.length} posts for today.`);
+    return {
+      scheduledPostsCount: scheduledPosts.length,
+      posts: scheduledPosts,
+      notes: `Successfully generated and scheduled ${scheduledPosts.length} social posts across ${config.targetPlatforms.join(', ')} automatically.`,
+    };
+  }
+}

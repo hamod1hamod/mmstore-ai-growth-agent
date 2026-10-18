@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0d0f12] text-slate-100;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #14171d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252a36;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3b4252;
+}
+
+/* Arabic typography support */
+.font-arabic {
+  font-family: 'Cairo', system-ui, sans-serif;
+}

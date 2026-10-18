@@ -1,0 +1,23 @@
+{
+  "name": "mmstore-ai-growth-agent",
+  "version": "1.0.0",
+  "description": "MMStore AI Social Media Growth Agent - Automated Daily Fashion Marketing Platform",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build && npm --prefix functions run build",
+    "functions:build": "npm --prefix functions run build",
+    "functions:watch": "npm --prefix functions run build:watch",
+    "emulators": "firebase emulators:start",
+    "test": "npm --prefix functions test && npm --prefix frontend test"
+  },
+  "keywords": [
+    "ai-agent",
+    "ecommerce-growth",
+    "social-media-automation",
+    "tiktok-reels-instagram",
+    "firebase"
+  ],
+  "author": "MMStore Engineering",
+  "license": "UNLICENSED"
+}

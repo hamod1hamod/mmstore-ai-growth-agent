@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOrgMember(orgId) {
+      return isSignedIn() && (
+        request.auth.token.orgId == orgId ||
+        firestore.exists(/databases/(default)/documents/organizations/$(orgId)/memberships/$(request.auth.uid))
+      );
+    }
+
+    // Public read for published media assets, protected write
+    match /orgs/{orgId}/public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isOrgMember(orgId);
+    }
+
+    // Organization private assets (drafts, internal products, brand kits)
+    match /orgs/{orgId}/{allPaths=**} {
+      allow read: if isOrgMember(orgId);
+      allow write: if isOrgMember(orgId) &&
+        request.resource.size < 100 * 1024 * 1024 && // Max 100MB
+        request.resource.contentType.matches('image/.*|video/.*|audio/.*|application/json');
+    }
+  }
+}
