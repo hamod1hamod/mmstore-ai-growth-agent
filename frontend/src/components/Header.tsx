@@ -15,6 +15,7 @@ interface Props {
   onTriggerAutopilotNow: () => void;
   isAutopilotRunning: boolean;
   activeTabTitle: string;
+  onOpenWelcome?: () => void;
 }
 
 export const Header: React.FC<Props> = ({
@@ -22,6 +23,7 @@ export const Header: React.FC<Props> = ({
   onTriggerAutopilotNow,
   isAutopilotRunning,
   activeTabTitle,
+  onOpenWelcome,
 }) => {
   return (
     <header className="h-16 bg-[#14171d]/90 backdrop-blur border-b border-[#252a36] px-6 flex items-center justify-between sticky top-0 z-20">
@@ -52,6 +54,14 @@ export const Header: React.FC<Props> = ({
               <span>Run Daily Autopilot Now</span>
             </>
           )}
+        </button>
+
+        {/* Welcome Film Shortcut */}
+        <button
+          onClick={onOpenWelcome}
+          className="px-2.5 py-1 rounded-lg bg-pink-950/40 hover:bg-pink-900/50 border border-pink-500/40 text-xs font-semibold text-pink-300 flex items-center gap-1.5 transition-all cursor-pointer"
+        >
+          <span>🎬 Welcome Film</span>
         </button>
 
         {/* Currency Pill */}

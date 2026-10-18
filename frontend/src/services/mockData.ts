@@ -255,6 +255,32 @@ export const MOCK_SOCIAL_ACCOUNTS: SocialAccount[] = [
     scopes: ['whatsapp_business_messaging'],
     lastSyncAt: Date.now() - 1800000,
     createdAt: Date.now() - 30 * 86400000,
+  },
+  {
+    id: 'acc_li',
+    orgId: 'default-mmstore',
+    platform: 'linkedin',
+    accountName: 'MMStore Fashion Retail Group',
+    username: 'linkedin.com/company/mmstore-egypt',
+    accountId: 'urn:li:organization:9284102',
+    connected: true,
+    status: 'healthy',
+    scopes: ['w_organization_social', 'r_organization_social'],
+    lastSyncAt: Date.now() - 12000000,
+    createdAt: Date.now() - 25 * 86400000,
+  },
+  {
+    id: 'acc_snap',
+    orgId: 'default-mmstore',
+    platform: 'snapchat',
+    accountName: 'MMStore Official Spotlight',
+    username: 'snapchat.com/add/mmstore_eg',
+    accountId: 'snap_org_918230',
+    connected: true,
+    status: 'healthy',
+    scopes: ['snapchat_marketing_api', 'creative_kit'],
+    lastSyncAt: Date.now() - 43200000,
+    createdAt: Date.now() - 20 * 86400000,
   }
 ];
 

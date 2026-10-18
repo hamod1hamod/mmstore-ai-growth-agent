@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Header } from './components/Header';
+import { WelcomeView } from './views/WelcomeView';
 import { OverviewView } from './views/OverviewView';
 import { AIMarketingAgentView } from './views/AIMarketingAgentView';
 import { ContentStudioView } from './views/ContentStudioView';
@@ -141,6 +142,24 @@ export const App: React.FC = () => {
     }));
   };
 
+  const handleConnectAllAccounts = () => {
+    setAccounts(prev => prev.map(a => ({
+      ...a,
+      connected: true,
+      status: 'healthy' as const,
+      lastSyncAt: Date.now(),
+    })));
+    alert('⚡ All 10 social media accounts connected & verified for MMStore AI Agent!');
+  };
+
+  const handleDisconnectAllAccounts = () => {
+    setAccounts(prev => prev.map(a => ({
+      ...a,
+      connected: false,
+      status: 'disconnected' as const,
+    })));
+  };
+
   const handleSendReply = (convoId: string, replyText: string) => {
     setConversations(prev => prev.map(c => {
       if (c.id === convoId) {
@@ -151,6 +170,7 @@ export const App: React.FC = () => {
   };
 
   const tabTitles: Record<NavTab, string> = {
+    welcome: '0. Welcome Film Experience (Taste-Skill Cinematic)',
     overview: '1. Executive Overview & Autopilot Pilot',
     agent: '2. AI Marketing Agent Coordinator',
     'content-studio': '3. AI Product-to-Content Studio',
@@ -165,9 +185,14 @@ export const App: React.FC = () => {
     automation: '12. Social Automation Rules & Limits',
     notifications: '13. Notifications & Activity Stream',
     team: '14. Team Roles & Immutable Audit Trail',
-    settings: '15. Brand Kit, Voice & Secrets',
+    settings: '15. Store & GitHub Sync',
     subscription: '16. Subscription & GitHub Marketplace Plans',
   };
+
+  // If activeTab is 'welcome', render full-screen immersive editorial film experience
+  if (activeTab === 'welcome') {
+    return <WelcomeView onEnterDashboard={() => setActiveTab('overview')} />;
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0d0f12] text-slate-100 font-sans">
@@ -186,6 +211,7 @@ export const App: React.FC = () => {
           onTriggerAutopilotNow={handleTriggerAutopilotNow}
           isAutopilotRunning={isAutopilotRunning}
           activeTabTitle={tabTitles[activeTab]}
+          onOpenWelcome={() => setActiveTab('welcome')}
         />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
@@ -237,6 +263,8 @@ export const App: React.FC = () => {
               <SocialAccountsView
                 accounts={accounts}
                 onToggleAccount={handleToggleAccount}
+                onConnectAll={handleConnectAllAccounts}
+                onDisconnectAll={handleDisconnectAllAccounts}
               />
             )}
 

@@ -18,10 +18,12 @@ import {
   CreditCard,
   Flame,
   CheckCircle2,
-  Clock
+  Clock,
+  Film
 } from 'lucide-react';
 
 export type NavTab = 
+  | 'welcome'
   | 'overview'
   | 'agent'
   | 'content-studio'
@@ -55,6 +57,7 @@ export const Sidebar: React.FC<Props> = ({
   unreadCount = 2,
 }) => {
   const navItems = [
+    { id: 'welcome', label: '0. Welcome Film (Taste)', icon: Film, badge: 'Film' },
     { id: 'overview', label: '1. Overview', icon: LayoutDashboard },
     { id: 'agent', label: '2. AI Marketing Agent', icon: Bot, badge: 'Auto' },
     { id: 'content-studio', label: '3. Content Studio', icon: Sparkles },
@@ -69,7 +72,7 @@ export const Sidebar: React.FC<Props> = ({
     { id: 'automation', label: '12. Automation Rules', icon: Zap },
     { id: 'notifications', label: '13. Notifications', icon: Bell, badgeCount: unreadCount },
     { id: 'team', label: '14. Team & Permissions', icon: ShieldCheck },
-    { id: 'settings', label: '15. Settings & API Keys', icon: Settings },
+    { id: 'settings', label: '15. Store & GitHub Sync', icon: Settings },
     { id: 'subscription', label: '16. Subscription & GitHub Plan', icon: CreditCard, badge: 'PRO' },
   ];
 
