@@ -79,6 +79,13 @@
    - Tamper-proof immutable audit logging (`auditLogs` cannot be mutated or deleted).
    - Encrypted token storage segregated in private subcollections accessible only by organization owners and backend Cloud Functions.
 
+7. **GitHub Marketplace & Subscription Plan Tool**:
+   - Tiered plans: **Community Free**, **Starter Growth** ($29/mo or 850 EGP), **Pro Autopilot Scale** ($79/mo or 2,400 EGP), and **Enterprise VIP** ($199/mo or 6,000 EGP).
+   - Automated quota gating for connected channels, daily autopilot drops, and video duration.
+   - Dedicated GitHub Marketplace webhook endpoint (`/githubMarketplaceWebhook`) with HMAC signature verification.
+   - License key activation tool to unlock enterprise features immediately.
+   - One-click publishing scripts to push to a private GitHub repository (`scripts/publish-to-github.sh` & `scripts/publish-to-github.ps1`).
+
 ---
 
 ## 3. Technology Stack
