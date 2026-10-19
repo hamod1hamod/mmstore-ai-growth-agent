@@ -17,7 +17,8 @@ import {
   MessageCircle,
   Send,
   Zap,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react';
 import { SocialAccount, PlatformId, PlatformCapability } from '../types';
 import { PlatformIcon } from '../components/PlatformIcon';
@@ -29,6 +30,7 @@ interface Props {
   onConnectAll?: () => void;
   onDisconnectAll?: () => void;
   onAddAccount?: (account: SocialAccount) => void;
+  onRemoveAccount?: (accountId: string) => void;
 }
 
 export const SocialAccountsView: React.FC<Props> = ({ 
@@ -36,23 +38,26 @@ export const SocialAccountsView: React.FC<Props> = ({
   onToggleAccount,
   onConnectAll,
   onDisconnectAll,
-  onAddAccount 
+  onAddAccount,
+  onRemoveAccount 
 }) => {
-  const [selectedAccount, setSelectedAccount] = useState<SocialAccount>(accounts[0] || {} as SocialAccount);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>(accounts[0]?.id || '');
   const [copied, setCopied] = useState(false);
   const [authKeyInput, setAuthKeyInput] = useState<string>('');
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [copiedSharePackage, setCopiedSharePackage] = useState<string | null>(null);
 
+  const connectedCount = accounts.filter(a => a.connected).length;
+
   // Filter: 'all' | 'personal' | 'business'
   const [accountTypeFilter, setAccountTypeFilter] = useState<'all' | 'personal' | 'business'>('all');
 
-  // New Personal Account Form Drawer
-  const [showAddPersonalModal, setShowAddPersonalModal] = useState<boolean>(false);
+  // New Personal Account Form Drawer - open by default if 0 accounts connected
+  const [showAddPersonalModal, setShowAddPersonalModal] = useState<boolean>(connectedCount === 0);
   const [newPlatform, setNewPlatform] = useState<PlatformId>('instagram');
   const [newUsername, setNewUsername] = useState<string>('@hamod1hamod');
-  const [newAccountName, setNewAccountName] = useState<string>('My Personal Account');
+  const [newAccountName, setNewAccountName] = useState<string>('Hamod Personal Instagram');
   const [newPhone, setNewPhone] = useState<string>('+20 100 123 4567');
 
   // Platform capabilities table
@@ -157,6 +162,8 @@ export const SocialAccountsView: React.FC<Props> = ({
     },
   };
 
+  const selectedAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0] || null;
+
   const filteredAccounts = accounts.filter(acc => {
     if (accountTypeFilter === 'all') return true;
     if (accountTypeFilter === 'personal') return acc.accountType === 'personal' || !acc.accountType;
@@ -165,6 +172,7 @@ export const SocialAccountsView: React.FC<Props> = ({
   });
 
   const handleCopyInstructions = () => {
+    if (!selectedAccount) return;
     const text = `
 [MMSTORE 1-CLICK POST PACKAGE]
 Platform: ${selectedAccount.platform.toUpperCase()}
@@ -211,6 +219,7 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
   };
 
   const handleTestConnection = () => {
+    if (!selectedAccount) return;
     setIsTesting(true);
     setTestResult(null);
     setTimeout(() => {
@@ -222,8 +231,9 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
   const handleCreatePersonalAccount = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUser = newUsername.trim().startsWith('@') ? newUsername.trim() : `@${newUsername.trim()}`;
+    const newId = `acc_personal_${Date.now()}`;
     const newAcc: SocialAccount = {
-      id: `acc_personal_${Date.now()}`,
+      id: newId,
       orgId: 'default-mmstore',
       platform: newPlatform,
       accountName: newAccountName.trim() || `${newPlatform} Personal`,
@@ -242,9 +252,9 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
     if (onAddAccount) {
       onAddAccount(newAcc);
     }
-    setSelectedAccount(newAcc);
+    setSelectedAccountId(newId);
     setShowAddPersonalModal(false);
-    alert(`🎉 Personal Account (${cleanUser}) connected successfully! No developer API or Meta Business required.`);
+    alert(`🎉 تم ربط حسابك الشخصي (${newPlatform === 'whatsapp' ? newPhone : cleanUser}) بنجاح! جاهز للنشر والأتمتة.`);
   };
 
   return (
@@ -283,10 +293,15 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
 
           {onDisconnectAll && (
             <button
-              onClick={onDisconnectAll}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs cursor-pointer"
+              onClick={() => {
+                if (window.confirm('هل أنت متأكد من رغبتك في فصل جميع الحسابات (Disconnect All)؟ سيتم تحويل حالة جميع القنوات إلى مفصولة.')) {
+                  onDisconnectAll();
+                }
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/50 text-rose-300 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-950/40 cursor-pointer transition-all"
+              title="Disconnect all accounts and reset"
             >
-              Disconnect All
+              <span>🔌 Disconnect All (فصل جميع الحسابات)</span>
             </button>
           )}
         </div>
@@ -356,9 +371,23 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
             </div>
 
             <div>
-              <label className="text-slate-300 font-semibold block mb-1">
-                {newPlatform === 'whatsapp' ? 'رقم الواتساب الشخصي (مع كود الدولة)' : 'اسم المستخدم / Handle'}
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-300 font-semibold block">
+                  {newPlatform === 'whatsapp' ? 'رقم الواتساب الشخصي (مع كود الدولة)' : 'اسم المستخدم / Handle'}
+                </label>
+                {newPlatform !== 'whatsapp' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewUsername('@hamod1hamod');
+                      setNewAccountName('Hamod Official');
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 cursor-pointer transition-all"
+                  >
+                    استخدم @hamod1hamod
+                  </button>
+                )}
+              </div>
               {newPlatform === 'whatsapp' ? (
                 <input
                   type="text"
@@ -447,15 +476,32 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
         {/* Connected Accounts List (7 cols) */}
         <div className="lg:col-span-7 space-y-3">
           <div className="space-y-2.5">
+            {filteredAccounts.length === 0 && (
+              <div className="p-8 rounded-2xl bg-[#14171d] border border-dashed border-slate-700 text-center space-y-3">
+                <p className="text-slate-300 text-sm font-bold">لا توجد أي حسابات في هذا القسم حالياً</p>
+                <p className="text-slate-400 text-xs">
+                  يمكنك إضافة حسابك الشخصي (إنستجرام أو تيك توك أو واتساب) بضغطة زر واحدة.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowAddPersonalModal(true)}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:opacity-95 text-white font-bold text-xs cursor-pointer shadow-md inline-flex items-center gap-1.5"
+                >
+                  <Plus size={14} />
+                  <span>➕ إضافة حساب شخصي جديد</span>
+                </button>
+              </div>
+            )}
+
             {filteredAccounts.map((acc) => {
-              const isSelected = selectedAccount.id === acc.id;
+              const isSelected = selectedAccount?.id === acc.id;
               const cap = platformCaps[acc.platform] || { name: acc.platform, directPublish: true, formats: 'Standard' };
               const isPersonal = acc.accountType === 'personal' || !acc.accountType;
 
               return (
                 <div
                   key={acc.id}
-                  onClick={() => setSelectedAccount(acc)}
+                  onClick={() => setSelectedAccountId(acc.id)}
                   className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
                     isSelected 
                       ? 'bg-indigo-950/30 border-indigo-500 shadow-md shadow-indigo-500/10' 
@@ -523,6 +569,21 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
                     >
                       {acc.connected ? 'Disconnect' : 'Connect'}
                     </button>
+
+                    {onRemoveAccount && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`هل أنت متأكد من حذف الحساب (${acc.accountName} - ${acc.username}) نهائياً؟`)) {
+                            onRemoveAccount(acc.id);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/70 hover:text-rose-400 text-slate-400 border border-transparent hover:border-rose-500/30 cursor-pointer transition-all"
+                        title="حذف هذا الحساب نهائياً"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -531,10 +592,31 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
         </div>
 
         {/* Selected Account Capabilities & Controls (5 cols) */}
-        <div className="lg:col-span-5 p-5 rounded-2xl bg-[#14171d] border border-[#252a36] space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-2.5">
-              <PlatformIcon platform={selectedAccount.platform} size={22} />
+        {!selectedAccount ? (
+          <div className="lg:col-span-5 p-8 rounded-2xl bg-[#14171d] border border-[#252a36] text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+              <Smartphone size={28} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">لا يوجد حساب محدد</h3>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                جميع الحسابات مفصولة حالياً. أضف حسابك الشخصي للبدء في النشر والجدولة اليومية بكل أريحية.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddPersonalModal(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:opacity-95 text-white font-bold text-xs cursor-pointer shadow-lg inline-flex items-center gap-1.5"
+            >
+              <Plus size={14} />
+              <span>إضافة حساب شخصي الآن</span>
+            </button>
+          </div>
+        ) : (
+          <div className="lg:col-span-5 p-5 rounded-2xl bg-[#14171d] border border-[#252a36] space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <PlatformIcon platform={selectedAccount.platform} size={22} />
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
                   <span>{selectedAccount.accountName}</span>
@@ -676,6 +758,7 @@ Account: ${selectedAccount.username} (${selectedAccount.accountType === 'persona
             <span>بيانات حسابك الشخصي آمنة 100% ولا يتم طلب أي باسوردات لحمايتك التامة.</span>
           </div>
         </div>
+      )}
       </div>
     </div>
   );

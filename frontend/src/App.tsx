@@ -164,6 +164,10 @@ export const App: React.FC = () => {
     setAccounts(prev => [newAccount, ...prev]);
   };
 
+  const handleRemoveAccount = (accId: string) => {
+    setAccounts(prev => prev.filter(a => a.id !== accId));
+  };
+
   const handleSendReply = (convoId: string, replyText: string) => {
     setConversations(prev => prev.map(c => {
       if (c.id === convoId) {
@@ -270,6 +274,7 @@ export const App: React.FC = () => {
                 onConnectAll={handleConnectAllAccounts}
                 onDisconnectAll={handleDisconnectAllAccounts}
                 onAddAccount={handleAddAccount}
+                onRemoveAccount={handleRemoveAccount}
               />
             )}
 
