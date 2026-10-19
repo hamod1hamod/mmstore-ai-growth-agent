@@ -160,6 +160,10 @@ export const App: React.FC = () => {
     })));
   };
 
+  const handleAddAccount = (newAccount: SocialAccount) => {
+    setAccounts(prev => [newAccount, ...prev]);
+  };
+
   const handleSendReply = (convoId: string, replyText: string) => {
     setConversations(prev => prev.map(c => {
       if (c.id === convoId) {
@@ -265,6 +269,7 @@ export const App: React.FC = () => {
                 onToggleAccount={handleToggleAccount}
                 onConnectAll={handleConnectAllAccounts}
                 onDisconnectAll={handleDisconnectAllAccounts}
+                onAddAccount={handleAddAccount}
               />
             )}
 

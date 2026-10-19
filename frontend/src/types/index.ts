@@ -64,6 +64,7 @@ export interface SocialAccount {
   platform: PlatformId;
   accountName: string;
   username: string;
+  accountType?: 'personal' | 'business'; // Personal profile vs Developer Business API
   avatarUrl?: string;
   accountId: string;
   connected: boolean;
@@ -72,6 +73,8 @@ export interface SocialAccount {
   tokenExpiresAt?: number;
   lastSyncAt: number;
   createdAt: number;
+  personalProfileUrl?: string;
+  personalPhoneNumber?: string;
 }
 
 export interface PlatformCapability {
@@ -173,6 +176,7 @@ export interface VideoPlan {
 export interface AutopilotConfig {
   orgId: string;
   enabled: boolean;
+  automationMode?: 'friendly_companion' | 'hands_free_autopilot' | 'review_first';
   dailyPostCount: number;
   targetPlatforms: PlatformId[];
   postingScheduleUtc: string[];
@@ -182,6 +186,10 @@ export interface AutopilotConfig {
   tone: 'streetwear_hype' | 'casual_friendly' | 'premium_fashion' | 'direct_offer';
   includeUrgency: boolean;
   safetyInventoryThreshold: number;
+  friendlyMorningHour?: string;
+  friendlyAfternoonHour?: string;
+  friendlyEveningHour?: string;
+  autoCopyCaptionOnShare?: boolean;
 }
 
 export interface CampaignFinance {
